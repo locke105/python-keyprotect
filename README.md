@@ -3,7 +3,7 @@ A Pythonic client for IBM Key Protect
 
 # Usage
 
-```
+```python
 import keyprotect
 from keyprotect import bxauth
 
