@@ -15,22 +15,35 @@
 from __future__ import print_function
 
 import StringIO
+import logging
 
 import requests
 
 NETLOC = "https://keyprotect.us-south.bluemix.net"
+LOG = logging.getLogger(__name__)
+
+DEBUG_CURL = False
+
+
+def get_curl_cmd(req):
+    curl_cmd = "curl -X%(method)s '%(url)s'" % req.__dict__
+    for header, val in req.headers.items():
+        curl_cmd += ' -H "%s: %s"' % (header, val)
+    if req.body:
+        curl_cmd += '-d "%s"' % req.body
+    return curl_cmd
+
 
 class Keys(object):
 
     def __init__(self, iamtoken, instance_id):
         self._headers = {}
-        self._headers['authorization'] = "Bearer %s" % iamtoken
+        self._headers['Authorization'] = "Bearer %s" % iamtoken
         self._headers['bluemix-instance'] = instance_id
 
     def _validate_resp(self, resp):
-        try:
-            resp.raise_for_status()
-        except requests.HTTPError as http_err:
+
+        def log_resp(resp):
             resp_str = StringIO.StringIO()
             print("%s %s" % (resp.status_code, resp.reason), file=resp_str)
 
@@ -40,8 +53,16 @@ class Keys(object):
                 print("%s: %s" % (k, v), file=resp_str)
 
             print(resp.content, end='', file=resp_str)
+            return resp_str.getvalue()
 
-            http_err.raw_response = resp_str.getvalue()
+        try:
+            resp.raise_for_status()
+            if DEBUG_CURL:
+                print(get_curl_cmd(resp.request))
+
+            LOG.debug(log_resp(resp))
+        except requests.HTTPError as http_err:
+            http_err.raw_response = log_resp(resp)
             raise http_err
 
     def index(self):
@@ -49,7 +70,7 @@ class Keys(object):
 
         self._validate_resp(resp)
 
-        return resp.json().get('resources')
+        return resp.json().get('resources', [])
 
     def create(self, name, root=False):
 
