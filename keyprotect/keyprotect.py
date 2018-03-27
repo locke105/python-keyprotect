@@ -34,6 +34,15 @@ def get_curl_cmd(req):
     return curl_cmd
 
 
+class KeyState(object):
+    # see NIST SP 800-57
+    # the KeyProtect API docs only define the following for some reason
+    PREACTIVATION = 0
+    ACTIVE = 1
+    DEACTIVATED = 3
+    DESTROYED = 5
+
+
 class Keys(object):
 
     def __init__(self, iamtoken, instance_id):
@@ -71,6 +80,15 @@ class Keys(object):
         self._validate_resp(resp)
 
         return resp.json().get('resources', [])
+
+    def get(self, key_id):
+        resp = requests.get(
+            "%s/api/v2/keys/%s" % (NETLOC, key_id),
+            headers=self._headers)
+
+        self._validate_resp(resp)
+
+        return resp.json().get('resources')[0]
 
     def create(self, name, root=False):
 
