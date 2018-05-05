@@ -39,7 +39,8 @@ def request(method, url, body=None, data=None, headers=None):
         headers['Content-Type'] = 'application/x-www-form-urlencoded'
         body = urllib.urlencode(data)
 
-    path = urlparse.urlunsplit(('', '', parts.path, parts.query, parts.fragment))
+    path = urlparse.urlunsplit(
+        ('', '', parts.path, parts.query, parts.fragment))
 
     LOG.debug(get_curl(method, url, headers))
 

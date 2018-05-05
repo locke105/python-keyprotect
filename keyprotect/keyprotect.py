@@ -106,10 +106,12 @@ class Keys(object):
             ]
         }
 
-        resp = requests.post("%s/api/v2/keys" % NETLOC, headers=self._headers, json=data)
+        resp = requests.post(
+            "%s/api/v2/keys" % NETLOC, headers=self._headers, json=data)
         self._validate_resp(resp)
         return resp.json().get('resources')[0]
 
     def delete(self, key_id):
-        resp = requests.delete("%s/api/v2/keys/%s" % (NETLOC, key_id), headers=self._headers)
+        resp = requests.delete(
+            "%s/api/v2/keys/%s" % (NETLOC, key_id), headers=self._headers)
         self._validate_resp(resp)
