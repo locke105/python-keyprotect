@@ -14,10 +14,11 @@
 
 from __future__ import print_function
 
-import StringIO
 import logging
+import StringIO
 
 import requests
+
 
 NETLOC = "https://keyprotect.us-south.bluemix.net"
 LOG = logging.getLogger(__name__)
