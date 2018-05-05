@@ -14,6 +14,7 @@
 
 from __future__ import print_function
 
+import base64
 import logging
 import StringIO
 
@@ -29,9 +30,9 @@ DEBUG_CURL = False
 def get_curl_cmd(req):
     curl_cmd = "curl -X%(method)s '%(url)s'" % req.__dict__
     for header, val in req.headers.items():
-        curl_cmd += ' -H "%s: %s"' % (header, val)
+        curl_cmd += " -H '%s: %s'" % (header, val)
     if req.body:
-        curl_cmd += '-d "%s"' % req.body
+        curl_cmd += " -d '%s'" % req.body
     return curl_cmd
 
 
@@ -49,7 +50,7 @@ class Keys(object):
     def __init__(self, iamtoken, instance_id):
         self._headers = {}
         self._headers['Authorization'] = "Bearer %s" % iamtoken
-        self._headers['bluemix-instance'] = instance_id
+        self._headers['Bluemix-Instance'] = instance_id
 
     def _validate_resp(self, resp):
 
@@ -66,11 +67,12 @@ class Keys(object):
             return resp_str.getvalue()
 
         try:
-            resp.raise_for_status()
             if DEBUG_CURL:
                 print(get_curl_cmd(resp.request))
 
             LOG.debug(log_resp(resp))
+
+            resp.raise_for_status()
         except requests.HTTPError as http_err:
             http_err.raw_response = log_resp(resp)
             raise http_err
@@ -115,3 +117,29 @@ class Keys(object):
         resp = requests.delete(
             "%s/api/v2/keys/%s" % (NETLOC, key_id), headers=self._headers)
         self._validate_resp(resp)
+
+    def _action(self, key_id, action, jsonable):
+        resp = requests.post(
+            "%s/api/v2/keys/%s" % (NETLOC, key_id),
+            headers=self._headers,
+            params={"action": action},
+            json=jsonable)
+        self._validate_resp(resp)
+        return resp.json()
+
+    def wrap(self, key_id, plaintext, aad=None):
+        data = {'plaintext': base64.b64encode(plaintext)}
+
+        if aad:
+            data['aad'] = aad
+
+        return self._action(key_id, "wrap", data)
+
+    def unwrap(self, key_id, ciphertext, aad=None):
+        data = {'ciphertext': ciphertext}
+
+        if aad:
+            data['aad'] = aad
+
+        resp = self._action(key_id, "unwrap", data)
+        return base64.b64decode(resp['plaintext'])
