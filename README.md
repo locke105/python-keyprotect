@@ -25,4 +25,25 @@ print("Created key '%s'" % key['id'])
 
 kp.delete(key.get('id'))
 print("Deleted key '%s'" % key['id'])
+
+
+# wrap and unwrap require a non-exportable key,
+# these are also referred to as root keys
+key = kp.create(name="MyRootKey", root=True)
+
+# wrap/unwrap
+message = 'This is a really important message.'
+wrapped = kp.wrap(key.get('id'), message)
+ciphertext = wrapped.get("ciphertext")
+
+unwrapped = kp.unwrap(key.get('id'), ciphertext)
+assert message == unwrapped
+
+# wrap/unwrap with AAD
+message = 'This is a really important message too.'
+wrapped = kp.wrap(key.get('id'), message, aad=['python-keyprotect'])
+ciphertext = wrapped.get("ciphertext")
+
+unwrapped = kp.unwrap(key.get('id'), ciphertext, aad=['python-keyprotect'])
+assert message == unwrapped
 ```
