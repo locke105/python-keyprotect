@@ -47,10 +47,12 @@ class KeyState(object):
 
 class Keys(object):
 
-    def __init__(self, iamtoken, instance_id):
+    def __init__(self, iamtoken, instance_id, verify=True):
         self._headers = {}
         self._headers['Authorization'] = "Bearer %s" % iamtoken
         self._headers['Bluemix-Instance'] = instance_id
+        self.session = requests.Session()
+        self.session.verify = verify
 
     def _validate_resp(self, resp):
 
@@ -78,14 +80,14 @@ class Keys(object):
             raise http_err
 
     def index(self):
-        resp = requests.get("%s/api/v2/keys" % NETLOC, headers=self._headers)
+        resp = self.session.get("%s/api/v2/keys" % NETLOC, headers=self._headers)
 
         self._validate_resp(resp)
 
         return resp.json().get('resources', [])
 
     def get(self, key_id):
-        resp = requests.get(
+        resp = self.session.get(
             "%s/api/v2/keys/%s" % (NETLOC, key_id),
             headers=self._headers)
 
@@ -108,18 +110,18 @@ class Keys(object):
             ]
         }
 
-        resp = requests.post(
+        resp = self.session.post(
             "%s/api/v2/keys" % NETLOC, headers=self._headers, json=data)
         self._validate_resp(resp)
         return resp.json().get('resources')[0]
 
     def delete(self, key_id):
-        resp = requests.delete(
+        resp = self.session.delete(
             "%s/api/v2/keys/%s" % (NETLOC, key_id), headers=self._headers)
         self._validate_resp(resp)
 
     def _action(self, key_id, action, jsonable):
-        resp = requests.post(
+        resp = self.session.post(
             "%s/api/v2/keys/%s" % (NETLOC, key_id),
             headers=self._headers,
             params={"action": action},
