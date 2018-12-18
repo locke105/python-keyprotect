@@ -80,7 +80,9 @@ class Keys(object):
             raise http_err
 
     def index(self):
-        resp = self.session.get("%s/api/v2/keys" % NETLOC, headers=self._headers)
+        resp = self.session.get(
+            "%s/api/v2/keys" % NETLOC,
+            headers=self._headers)
 
         self._validate_resp(resp)
 
