@@ -14,15 +14,68 @@
 
 from __future__ import print_function
 
+import base64
 import httplib
 import json
 import logging
+import os
 import pprint
+import sys
+import time
 import urllib
 import urlparse
 
 
 LOG = logging.getLogger(__name__)
+
+
+class TokenManager(object):
+
+    def __init__(self, api_key, iam_endpoint=None):
+        self.api_key = api_key
+        self.iam_endpoint = iam_endpoint
+        self._token_info = {}
+
+    def get_token(self):
+        if (not self._token_info.get('access_token') or
+                self.is_refresh_token_expired()):
+            self._request_token()
+        elif self.is_token_expired():
+            self._refresh_token()
+
+        return self._token_info.get('access_token')
+
+    def _request_token(self):
+        token_resp = auth(apikey=self.api_key, iam_endpoint=self.iam_endpoint)
+        if isinstance(token_resp, dict):
+            self._token_info = token_resp
+        else:
+            raise Exception("Error getting token: %s" % token_resp)
+
+    def _refresh_token(self):
+        token_resp = auth(
+            refresh_token=self._token_info.get('refresh_token'),
+            iam_endpoint=self.iam_endpoint)
+        if isinstance(token_resp, dict):
+            self._token_info = token_resp
+        else:
+            raise Exception("Error getting refreshing token: %s" % token_resp)
+
+    def is_token_expired(self):
+        # refresh even with 20% time still remainig,
+        # this should be 12 minutes before expiration for 1h tokens
+        token_expire_time = self._token_info.get('expiration', 0)
+        token_expires_in = self._token_info.get('expires_in', 0)
+        return (time.time() >= (token_expire_time - (0.2 * token_expires_in)))
+
+    def is_refresh_token_expired(self):
+        # no idea how long these last,
+        # but some other code suggested up to 30 days,
+        # but it was also assuming they expire within 7 days...
+        # assume 7 days, because better safe than sorry
+        day = 24 * 60 * 60
+        refresh_expire_time = self._token_info.get('expiration', 0) + (7 * day)
+        return (time.time() >= refresh_expire_time)
 
 
 def request(method, url, body=None, data=None, headers=None):
@@ -71,21 +124,30 @@ def get_curl(method, url, headers):
     return curl_str
 
 
-def auth(username=None, password=None, apikey=None, bss_account=None):
-    api_path = '/oidc/token'
-    api_endpoint = 'https://iam.ng.bluemix.net%s' % api_path
+def auth(username=None, password=None, apikey=None,
+         refresh_token=None, iam_endpoint=None):
+    if not iam_endpoint:
+        iam_endpoint = 'https://iam.cloud.ibm.com/'
+
+    if iam_endpoint[-1] == '/':
+        iam_endpoint = iam_endpoint[:-1]
+
+    api_endpoint = iam_endpoint + '/oidc/token'
 
     headers = {'Authorization': 'Basic Yng6Yng=',
                'Content-Type': 'application/x-www-form-urlencoded',
                'Accept': 'application/json'}
 
-    data = {'response_type': 'cloud_iam,uaa',
+    data = {'response_type': 'cloud_iam',
             'uaa_client_id': 'cf',
             'uaa_client_secret': ''}
 
     if apikey:
         data['grant_type'] = 'urn:ibm:params:oauth:grant-type:apikey'
         data['apikey'] = apikey
+    elif refresh_token:
+        data['grant_type'] = 'refresh_token'
+        data['refresh_token'] = refresh_token
     elif username and password:
         data['grant_type'] = 'password'
         data['username'] = username
@@ -148,3 +210,43 @@ def find_space_and_org(bearer_token, org_name, space_name):
             break
 
     return org_info, space_info
+
+
+def inspect_token(token):
+    parts = token.split(".")[:2]
+    decoded_parts = []
+    for part in parts:
+        padding = '=' * (len(part) % 4)
+        part = str(part)
+        decoded_part = base64.urlsafe_b64decode(part + padding)
+        try:
+            decoded_part = json.loads(decoded_part)
+        except ValueError:
+            pass
+        decoded_parts.append(decoded_part)
+
+    return decoded_parts
+
+
+def main():
+    api_key = None
+
+    # iterate through possible things that could be used to get us the key,
+    # last one that is not None or empty will win
+    possible_keys = [os.environ.get('BLUEMIX_API_KEY'),
+                     os.environ.get('IBMCLOUD_API_KEY')]
+    for pkey in possible_keys:
+        if pkey:
+            api_key = pkey
+
+    if not api_key:
+        print("error: please set BLUEMIX_API_KEY or IBMCLOUD_API_KEY",
+              file=sys.stderr)
+        return 1
+
+    tokman = TokenManager(api_key=api_key)
+    print(tokman.get_token())
+
+
+if __name__ == "__main__":
+    sys.exit(main())

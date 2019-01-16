@@ -21,7 +21,6 @@ import StringIO
 import requests
 
 
-NETLOC = "https://keyprotect.us-south.bluemix.net"
 LOG = logging.getLogger(__name__)
 
 DEBUG_CURL = False
@@ -36,6 +35,10 @@ def get_curl_cmd(req):
     return curl_cmd
 
 
+def get_endpoint_for_region(region):
+    return "https://keyprotect.%s.bluemix.net" % region
+
+
 class KeyState(object):
     # see NIST SP 800-57
     # the KeyProtect API docs only define the following for some reason
@@ -47,12 +50,18 @@ class KeyState(object):
 
 class Keys(object):
 
-    def __init__(self, iamtoken, instance_id, verify=True):
+    def __init__(self, iamtoken, region, instance_id,
+                 verify=True, endpoint_url=None):
         self._headers = {}
         self._headers['Authorization'] = "Bearer %s" % iamtoken
         self._headers['Bluemix-Instance'] = instance_id
         self.session = requests.Session()
         self.session.verify = verify
+
+        if endpoint_url:
+            self.endpoint_url = endpoint_url
+        else:
+            self.endpoint_url = get_endpoint_for_region(region)
 
     def _validate_resp(self, resp):
 
@@ -81,7 +90,7 @@ class Keys(object):
 
     def index(self):
         resp = self.session.get(
-            "%s/api/v2/keys" % NETLOC,
+            "%s/api/v2/keys" % self.endpoint_url,
             headers=self._headers)
 
         self._validate_resp(resp)
@@ -90,14 +99,14 @@ class Keys(object):
 
     def get(self, key_id):
         resp = self.session.get(
-            "%s/api/v2/keys/%s" % (NETLOC, key_id),
+            "%s/api/v2/keys/%s" % (self.endpoint_url, key_id),
             headers=self._headers)
 
         self._validate_resp(resp)
 
         return resp.json().get('resources')[0]
 
-    def create(self, name, root=False):
+    def create(self, name, payload=None, raw_payload=None, root=False):
 
         data = {
             "metadata": {
@@ -112,19 +121,28 @@ class Keys(object):
             ]
         }
 
+        # use raw_payload if given, else assume payload needs some base64 love
+        if raw_payload is not None:
+            data['resources'][0]['payload'] = raw_payload
+        elif payload is not None:
+            data['resources'][0]['payload'] = base64.b64encode(payload)
+
         resp = self.session.post(
-            "%s/api/v2/keys" % NETLOC, headers=self._headers, json=data)
+            "%s/api/v2/keys" % self.endpoint_url,
+            headers=self._headers,
+            json=data)
         self._validate_resp(resp)
         return resp.json().get('resources')[0]
 
     def delete(self, key_id):
         resp = self.session.delete(
-            "%s/api/v2/keys/%s" % (NETLOC, key_id), headers=self._headers)
+            "%s/api/v2/keys/%s" % (self.endpoint_url, key_id),
+            headers=self._headers)
         self._validate_resp(resp)
 
     def _action(self, key_id, action, jsonable):
         resp = self.session.post(
-            "%s/api/v2/keys/%s" % (NETLOC, key_id),
+            "%s/api/v2/keys/%s" % (self.endpoint_url, key_id),
             headers=self._headers,
             params={"action": action},
             json=jsonable)
