@@ -13,7 +13,7 @@ from keyprotect import bxauth
 
 service_id="..."
 
-tm = bxauth.TokenManager(apikey="...")
+tm = bxauth.TokenManager(api_key="...")
 iam_token = tm.get_token()
 
 kp = keyprotect.Keys(iamtoken=iam_token, instance_id=service_id)
