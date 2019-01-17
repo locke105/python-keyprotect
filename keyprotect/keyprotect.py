@@ -132,7 +132,7 @@ class Keys(object):
         return resp.json()
 
     def wrap(self, key_id, plaintext, aad=None):
-        data = {'plaintext': base64.b64encode(plaintext)}
+        data = {'plaintext': base64.b64encode(plaintext.encode()).decode()}
 
         if aad:
             data['aad'] = aad
@@ -146,4 +146,4 @@ class Keys(object):
             data['aad'] = aad
 
         resp = self._action(key_id, "unwrap", data)
-        return base64.b64decode(resp['plaintext'])
+        return base64.b64decode(resp['plaintext']).decode()
