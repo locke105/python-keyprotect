@@ -15,8 +15,8 @@
 from __future__ import print_function
 
 import base64
+import io
 import logging
-import StringIO
 
 import requests
 
@@ -57,7 +57,7 @@ class Keys(object):
     def _validate_resp(self, resp):
 
         def log_resp(resp):
-            resp_str = StringIO.StringIO()
+            resp_str = io.StringIO()
             print("%s %s" % (resp.status_code, resp.reason), file=resp_str)
 
             for k, v in resp.headers.items():

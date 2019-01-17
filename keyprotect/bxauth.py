@@ -14,33 +14,33 @@
 
 from __future__ import print_function
 
-import httplib
 import json
 import logging
 import pprint
-import urllib
-import urlparse
+
+from http.client import HTTPConnection, HTTPSConnection
+from urllib.parse import urlencode, urlparse, urlunsplit
 
 
 LOG = logging.getLogger(__name__)
 
 
 def request(method, url, body=None, data=None, headers=None):
-    parts = urlparse.urlparse(url)
-
-    if parts.scheme == 'https':
-        conn = httplib.HTTPSConnection(parts.netloc)
-    else:
-        conn = httplib.HTTPConnection(parts.netloc)
+    LOG.debug("URL:" + url)
 
     headers = headers if headers else {}
 
     if data:
         headers['Content-Type'] = 'application/x-www-form-urlencoded'
-        body = urllib.urlencode(data)
+        body = urlencode(data)
 
-    path = urlparse.urlunsplit(
-        ('', '', parts.path, parts.query, parts.fragment))
+    parts = urlparse(url)
+
+    if parts.scheme == 'https':
+        conn = HTTPSConnection(parts.netloc)
+    else:
+        conn = HTTPConnection(parts.netloc)
+    path = urlunsplit(('', '', parts.path, parts.query, parts.fragment))
 
     LOG.debug(get_curl(method, url, headers))
 
@@ -72,17 +72,32 @@ def get_curl(method, url, headers):
 
 
 def auth(username=None, password=None, apikey=None, bss_account=None):
+    """
+    Makes a authentication request to the IAM api
+    :param username: User
+    :param password: Password
+    :param apikey: API Key
+    :param bss_account: Billing Account
+    :return: Response
+    """
     api_path = '/oidc/token'
     api_endpoint = 'https://iam.ng.bluemix.net%s' % api_path
 
-    headers = {'Authorization': 'Basic Yng6Yng=',
-               'Content-Type': 'application/x-www-form-urlencoded',
-               'Accept': 'application/json'}
+    # HTTP Headers
+    headers = {
+        'Authorization': 'Basic Yng6Yng=',
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json'
+    }
 
-    data = {'response_type': 'cloud_iam,uaa',
-            'uaa_client_id': 'cf',
-            'uaa_client_secret': ''}
+    # HTTP Payload
+    data = {
+        'response_type': 'cloud_iam',
+        'uaa_client_id': 'cf',
+        'uaa_client_secret': ''
+    }
 
+    # Setup grant type
     if apikey:
         data['grant_type'] = 'urn:ibm:params:oauth:grant-type:apikey'
         data['apikey'] = apikey
@@ -93,8 +108,8 @@ def auth(username=None, password=None, apikey=None, bss_account=None):
     else:
         raise ValueError("Must specify one of username/password or apikey!")
 
-    encoded = urllib.urlencode(data)
 
+    encoded = urlencode(data)
     resp = request('POST', api_endpoint, body=encoded, headers=headers)
 
     if resp.status == 200:
