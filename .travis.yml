@@ -6,9 +6,18 @@ matrix:
   include:
     - python: 3.6
       env: TOXENV=flake8
+    - python: 3.6
+      env: TOXENV=py36
+    - python: 2.7
+      env: TOXENV=py27
 
 install:
   - "pip install tox"
 
 script:
   - tox
+
+env:
+  global:
+    - secure: imxw9GyTQZCPZGyo7g/1LHoY96vgPXP2xvE4R8Z0cL9g+e4hRd3QbBWznsi6GIZ8hytUeHjb79Gp036HB1TSZqOggUEvK4ah7TLzcr5euLCo0cgGiG2ja5v9auwBkVEdmFTC1sPbm1ji6EsQKtz9MmZdVX/dkPsAsJ3k2okFx1LB5egJKDdZSfo+LVUIjjyRgDN/Hmgoj2mcpwV5/R2LK/alif0PjOrDBImNh6o2bq0O91NHR8R1HhlA54RPxMq7vtls1GBKPleEfy1kO9qG/6f9iZ1xPkrf7X1Du8InGkuskote0rjtiRK91MHzxhMu4IGGhmdIM7cIyNXipiNGNPMQfEA4UlgA3qCNNJKxkw5I5CRLdHch1selN1UAYz15GlJ7FaGYOZ0JcANk9+NrhmV9VLhmyL5a5hYTqjt8tbBofMng9mtU4Djk7qgMZydrPyIRLRGXmxcKvfW00JzxNHh14gyzjQX+S0rorgk5pmrILIieim/KAjnKybG6Q5BMkiF7k5nqouNEzhguZLAqUvmtRI3Y1tExVIHkFm735JBy20AYsaOTFAAE4HtQL3ukTBWAVQdYt3Dc0lmOlKGtoCrSomFqxU8w8aap0z2acu36123rDWdNuYwqf5dEAzvHXcL0aNK3QqgrhD568eklFJewu18e1OWPkm/H2jAsllA=
+    - KP_INSTANCE_ID="ce46b1ab-c71f-4b1f-9fc4-4a774a49260c"

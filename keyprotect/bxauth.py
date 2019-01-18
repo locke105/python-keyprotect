@@ -15,15 +15,23 @@
 from __future__ import print_function
 
 import base64
-import httplib
 import json
 import logging
 import os
 import pprint
 import sys
 import time
-import urllib
-import urlparse
+
+try:
+    from urllib.parse import urlparse, urlencode, urlunsplit
+except ImportError:
+    from urlparse import urlparse, urlunsplit
+    from urllib import urlencode
+
+try:
+    import http.client as httplib
+except ImportError:
+    import httplib
 
 
 LOG = logging.getLogger(__name__)
@@ -79,7 +87,7 @@ class TokenManager(object):
 
 
 def request(method, url, body=None, data=None, headers=None):
-    parts = urlparse.urlparse(url)
+    parts = urlparse(url)
 
     if parts.scheme == 'https':
         conn = httplib.HTTPSConnection(parts.netloc)
@@ -90,9 +98,9 @@ def request(method, url, body=None, data=None, headers=None):
 
     if data:
         headers['Content-Type'] = 'application/x-www-form-urlencoded'
-        body = urllib.urlencode(data)
+        body = urlencode(data)
 
-    path = urlparse.urlunsplit(
+    path = urlunsplit(
         ('', '', parts.path, parts.query, parts.fragment))
 
     LOG.debug(get_curl(method, url, headers))
@@ -155,7 +163,7 @@ def auth(username=None, password=None, apikey=None,
     else:
         raise ValueError("Must specify one of username/password or apikey!")
 
-    encoded = urllib.urlencode(data)
+    encoded = urlencode(data)
 
     resp = request('POST', api_endpoint, body=encoded, headers=headers)
 

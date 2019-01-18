@@ -15,8 +15,8 @@
 from __future__ import print_function
 
 import base64
+import io
 import logging
-import StringIO
 
 import requests
 
@@ -66,15 +66,15 @@ class Keys(object):
     def _validate_resp(self, resp):
 
         def log_resp(resp):
-            resp_str = StringIO.StringIO()
-            print("%s %s" % (resp.status_code, resp.reason), file=resp_str)
+            resp_str = io.StringIO()
+            print(u"%d %s" % (resp.status_code, resp.reason), file=resp_str)
 
             for k, v in resp.headers.items():
                 if k.lower() == 'authorization':
                     v = 'REDACTED'
-                print("%s: %s" % (k, v), file=resp_str)
+                print(u"%s: %s" % (k, v), file=resp_str)
 
-            print(resp.content, end='', file=resp_str)
+            print(resp.content.decode(), end=u'', file=resp_str)
             return resp_str.getvalue()
 
         try:
@@ -150,7 +150,7 @@ class Keys(object):
         return resp.json()
 
     def wrap(self, key_id, plaintext, aad=None):
-        data = {'plaintext': base64.b64encode(plaintext)}
+        data = {'plaintext': base64.b64encode(plaintext).decode()}
 
         if aad:
             data['aad'] = aad
@@ -164,4 +164,4 @@ class Keys(object):
             data['aad'] = aad
 
         resp = self._action(key_id, "unwrap", data)
-        return base64.b64decode(resp['plaintext'])
+        return base64.b64decode(resp['plaintext'].encode())

@@ -8,6 +8,6 @@ setuptools.setup(
     author_email = "mathewrodden@gmail.com",
     packages = setuptools.find_packages(),
     install_requires = [
-        'requests'
+        'requests[security]'
     ]
 )
