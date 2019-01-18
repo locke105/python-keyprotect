@@ -12,11 +12,17 @@ import keyprotect
 from keyprotect import bxauth
 
 service_id="..."
+api_key="..."
 
-tm = bxauth.TokenManager(api_key="...")
+tm = bxauth.TokenManager(api_key=api_key)
 iam_token = tm.get_token()
 
-kp = keyprotect.Keys(iamtoken=iam_token, instance_id=service_id)
+kp = keyprotect.Keys(
+    iamtoken=iam_token,
+    region="us-south",
+    instance_id=service_id
+)
+
 for key in kp.index():
     print("%s\t%s" % (key['id'], key['name']))
 
@@ -31,8 +37,8 @@ print("Deleted key '%s'" % key['id'])
 # these are also referred to as root keys
 key = kp.create(name="MyRootKey", root=True)
 
-# wrap/unwrap
-message = 'This is a really important message.'
+# wrap/unwrap, payload should be a bytestring if python3
+message = b'This is a really important message.'
 wrapped = kp.wrap(key.get('id'), message)
 ciphertext = wrapped.get("ciphertext")
 
@@ -40,7 +46,7 @@ unwrapped = kp.unwrap(key.get('id'), ciphertext)
 assert message == unwrapped
 
 # wrap/unwrap with AAD
-message = 'This is a really important message too.'
+message = b'This is a really important message too.'
 wrapped = kp.wrap(key.get('id'), message, aad=['python-keyprotect'])
 ciphertext = wrapped.get("ciphertext")
 

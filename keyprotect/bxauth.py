@@ -134,6 +134,19 @@ def get_curl(method, url, headers):
 
 def auth(username=None, password=None, apikey=None,
          refresh_token=None, iam_endpoint=None):
+    """
+    Makes a authentication request to the IAM api
+    :param username: Username
+    :param password: Password
+    :param apikey: IBMCloud/Bluemix API Key
+    :param refresh_token: IBM IAM Refresh Token,
+        if specified the refresh token is used to authenticate,
+        instead of the API key
+    :param iam_endpoint: base URL that can be specified
+        to override the default IAM endpoint, if one, for example,
+        wanted to test against their own IAM or an internal server
+    :return: Response
+    """
     if not iam_endpoint:
         iam_endpoint = 'https://iam.cloud.ibm.com/'
 
@@ -142,14 +155,21 @@ def auth(username=None, password=None, apikey=None,
 
     api_endpoint = iam_endpoint + '/oidc/token'
 
-    headers = {'Authorization': 'Basic Yng6Yng=',
-               'Content-Type': 'application/x-www-form-urlencoded',
-               'Accept': 'application/json'}
+    # HTTP Headers
+    headers = {
+        'Authorization': 'Basic Yng6Yng=',
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json'
+    }
 
-    data = {'response_type': 'cloud_iam',
-            'uaa_client_id': 'cf',
-            'uaa_client_secret': ''}
+    # HTTP Payload
+    data = {
+        'response_type': 'cloud_iam',
+        'uaa_client_id': 'cf',
+        'uaa_client_secret': ''
+    }
 
+    # Setup grant type
     if apikey:
         data['grant_type'] = 'urn:ibm:params:oauth:grant-type:apikey'
         data['apikey'] = apikey
@@ -161,7 +181,8 @@ def auth(username=None, password=None, apikey=None,
         data['username'] = username
         data['password'] = password
     else:
-        raise ValueError("Must specify one of username/password or apikey!")
+        raise ValueError(
+            "Must specify one of username/password, apikey, or refresh_token!")
 
     encoded = urlencode(data)
 
